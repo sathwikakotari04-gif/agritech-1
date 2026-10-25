@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer SIGN IN | Smart Agro Connect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* NEE ORIGINAL STYLES - TOUCH CHEYALEDHU */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+                        url('https://images.unsplash.com/photo-1500382017468-9049fed747ef');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px;
+            border-radius: 25px;
+            width: 400px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            animation: fadeIn 1s ease;
+        }
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: #2e7d32;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        h2 { margin-bottom: 8px; font-weight: 600; }
+        p { font-size: 0.85rem; margin-bottom: 25px; opacity: 0.9; }
+        .input-group { position: relative; margin-bottom: 15px; }
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a5d6a7;
+        }
+        input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+        input:focus { border-color: #81c784; background: rgba(255, 255, 255, 0.2); }
+        input::placeholder { color: rgba(255, 255, 255, 0.75); }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #1b5e20;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+        button:hover { background: #2e7d32; transform: translateY(-2px); }
+        .hidden { display: none; }
+        #error-msg {
+            color: #ffcdd2;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        .footer-link {
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        .footer-link b { text-decoration: underline; color: #a5d6a7; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div id="details-step">
+        <div class="icon-box"><i class="fas fa-user-circle"></i></div>
+        <h2 id="form-title">Farmer Sign In</h2>
+        <p id="form-desc">Access your marketplace & tools</p>
+        
+        <div id="registration-fields">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="name" placeholder="Full Name">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="email" placeholder="Gmail Address">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-phone"></i>
+            <input type="tel" id="phone" placeholder="10-Digit Indian Phone" maxlength="10">
+        </div>
+
+        <button onclick="checkUserAndSendOTP()">Get OTP</button>
+        
+        <p class="footer-link" id="toggle-text">
+            Already have an account? <b onclick="toggleMode('login')">Log In</b>
+        </p>
+    </div>
+
+    <div id="otp-step" class="hidden">
+        <div class="icon-box"><i class="fas fa-key"></i></div>
+        <h2>OTP Verification</h2>
+        <p id="otp-hint"></p>
+        
+        <div class="input-group">
+            <i class="fas fa-shield-alt"></i>
+            <input type="text" id="otp-input" maxlength="4" placeholder="Enter 4-Digit Code" style="text-align: center; padding-left: 15px;">
+        </div>
+
+        <button onclick="verifyOTP()">Verify & Proceed</button>
+        <p class="footer-link"><b onclick="resetView()">Edit Details</b></p>
+    </div>
+
+    <p id="error-msg"></p>
+</div>
+
+<script>
+    // FIREBASE CONFIG
+    const firebaseConfig = {
+        apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+        authDomain: "agritech-c5612.firebaseapp.com",
+        projectId: "agritech-c5612",
+        storageBucket: "agritech-c5612.firebasestorage.app",
+        messagingSenderId: "859521048089",
+        appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let secretOTP;
+    let currentMode = 'signin';
+    let dbName = ""; // Database nundi peru store cheyadaniki
+
+    function toggleMode(mode) {
+        currentMode = mode;
+        const regFields = document.getElementById('registration-fields');
+        const title = document.getElementById('form-title');
+        const desc = document.getElementById('form-desc');
+        const footer = document.getElementById('toggle-text');
+        const err = document.getElementById('error-msg');
+        err.innerText = "";
+
+        if (mode === 'login') {
+            regFields.classList.add('hidden');
+            title.innerText = "Farmer Log In";
+            desc.innerText = "Welcome back! Enter your phone to login.";
+            footer.innerHTML = 'New here? <b onclick="toggleMode(\'signin\')">Sign In</b>';
+        } else {
+            regFields.classList.remove('hidden');
+            title.innerText = "Farmer Sign In";
+            desc.innerText = "Access your marketplace & tools";
+            footer.innerHTML = 'Already have an account? <b onclick="toggleMode(\'login\')">Log In</b>';
+        }
+    }
+
+    async function checkUserAndSendOTP() {
+        const phone = document.getElementById('phone').value;
+        const nameInput = document.getElementById('name').value;
+        const emailInput = document.getElementById('email').value;
+        const err = document.getElementById('error-msg');
+
+        if (!/^[6-9]\d{9}$/.test(phone)) {
+            err.innerText = "Error: Enter a valid 10-digit number";
+            return;
+        }
+
+        err.innerText = "Checking... ⏳";
+
+        try {
+            const userDoc = await db.collection("users").doc(phone).get();
+
+            if (currentMode === 'signin') {
+                if (userDoc.exists) {
+                    err.innerText = "Error: Number already registered! Please Log In.";
+                    return;
+                }
+                if (!nameInput || !emailInput) {
+                    err.innerText = "Error: Name and Email are required";
+                    return;
+                }
+                dbName = nameInput; 
+            } else {
+                if (!userDoc.exists) {
+                    err.innerText = "Error: Account not found! Please Sign In.";
+                    return;
+                }
+                dbName = userDoc.data().name; 
+            }
+
+            err.innerText = "";
+            secretOTP = Math.floor(1000 + Math.random() * 9000);
+            alert("Security Alert: Your Farmer OTP is " + secretOTP);
+            
+            document.getElementById('otp-hint').innerText = "Sent to +91 " + phone;
+            document.getElementById('details-step').classList.add('hidden');
+            document.getElementById('otp-step').classList.remove('hidden');
+
+        } catch (e) {
+            err.innerText = "Database Error: " + e.message;
+        }
+    }
+
+    // --- UPDATED VERIFY OTP LOGIC ---
+    async function verifyOTP() {
+        const entry = document.getElementById('otp-input').value;
+        const phone = document.getElementById('phone').value;
+        const nameInput = document.getElementById('name').value;
+        const emailInput = document.getElementById('email').value;
+        const err = document.getElementById('error-msg');
+
+        if (entry == secretOTP) {
+            err.style.color = "#a5d6a7";
+            err.innerText = "Success! Processing...";
+
+            try {
+                if (currentMode === 'signin') {
+                    await db.collection("users").doc(phone).set({
+                        name: nameInput,
+                        email: emailInput,
+                        phone: phone,
+                        role: 'farmer',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Memory lo name and phone save chestunnam
+                // Signin ayithe input nundi, Login ayithe db nundi vachina dbName vaadutham
+                const finalName = (currentMode === 'signin') ? nameInput : dbName;
+                
+                localStorage.setItem('farmerName', finalName);
+                localStorage.setItem('farmerPhone', phone);
+                localStorage.removeItem('farmer_unique_id'); // Kotha login kabatti refresh
+
+                // Redirect
+                setTimeout(() => {
+                    window.location.href = "farmerportal.html?phone=" + phone; 
+                }, 1000);
+
+            } catch (e) {
+                err.innerText = "Save Error: " + e.message;
+            }
+        } else {
+            err.style.color = "#ffcdd2";
+            err.innerText = "Invalid OTP. Access Denied.";
+        }
+    }
+
+    function resetView() {
+        document.getElementById('otp-step').classList.add('hidden');
+        document.getElementById('details-step').classList.remove('hidden');
+        document.getElementById('error-msg').innerText = "";
+    }
+</script>
+
+</body>
+</html>

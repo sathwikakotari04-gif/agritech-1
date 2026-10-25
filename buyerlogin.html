@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Agro Connect | Auth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* NEE ORIGINAL STYLES - NO CHANGES */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center; 
+            align-items: center;      
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
+                        url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=2000') no-repeat center center/cover;
+            background-attachment: fixed;
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px); 
+            padding: 45px;
+            border-radius: 30px;
+            width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            color: white;
+            animation: fadeIn 0.8s ease-out;
+        }
+        h2 { color: #ffffff; margin-bottom: 30px; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        input {
+            width: 100%; padding: 15px; margin: 12px 0; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; font-size: 16px; outline: none; transition: 0.3s;
+        }
+        input::placeholder { color: rgba(255, 255, 255, 0.7); }
+        input:focus { background: rgba(255, 255, 255, 0.2); border-color: #ffffff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.2); }
+        button {
+            width: 100%; padding: 16px; background: #039c0a; color: #ffffff;
+            border: none; border-radius: 12px; cursor: pointer; font-weight: 700;
+            font-size: 16px; margin-top: 20px; transition: 0.4s;
+            text-transform: uppercase; letter-spacing: 1.5px;
+        }
+        button:hover { background: #ffffff; color: rgb(5, 177, 33); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .login-link { display: block; margin-top: 20px; font-size: 14px; color: rgba(255, 255, 255, 0.8); text-decoration: none; transition: 0.3s; cursor: pointer; }
+        .login-link:hover { color: #ffffff; text-decoration: underline; }
+        .hidden { display: none; }
+        #message { margin-top: 25px; font-weight: 500; min-height: 24px; font-size: 15px; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+
+<body>
+
+<div class="login-container">
+    <h2 id="main-heading">🛒 Buyer Sign in</h2>
+
+    <div id="login-fields">
+        <div id="sign-in-only">
+            <input type="text" id="fullname" placeholder="Full Name">
+            <input type="email" id="gmail" placeholder="Gmail Address">
+        </div>
+        <input type="tel" id="phone" placeholder="10-Digit Mobile Number" maxlength="10">
+        <button id="send-btn" onclick="checkBuyerAndSendOTP()">Send OTP</button>
+    </div>
+
+    <div id="otpSection" class="hidden">
+        <p style="margin-bottom: 10px; font-size: 14px; opacity: 0.8;">Enter 4-Digit Code</p>
+        <input type="text" id="otpInput" placeholder="0000" maxlength="4" style="letter-spacing: 8px; text-align: center; font-size: 22px;">
+        <button onclick="verifyOTP()">Verify & Login</button>
+        <p class="login-link" onclick="resetView()">Edit Details</p>
+    </div>
+
+    <p id="message"></p>
+    
+    <a id="toggleLink" class="login-link" onclick="showLogin()">Already have an account? Login</a>
+    <a id="toggleLinkBack" class="login-link hidden" onclick="showSignin()">New here? Create Account</a>
+</div>
+
+<script>
+// FIREBASE CONFIG
+const firebaseConfig = {
+    apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+    authDomain: "agritech-c5612.firebaseapp.com",
+    projectId: "agritech-c5612",
+    storageBucket: "agritech-c5612.firebasestorage.app",
+    messagingSenderId: "859521048089",
+    appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let generatedOTP;
+let isLoginMode = false;
+
+function showLogin() {
+    isLoginMode = true;
+    document.getElementById("main-heading").innerText = "🛒 Buyer Login";
+    document.getElementById("sign-in-only").classList.add("hidden");
+    document.getElementById("toggleLink").classList.add("hidden");
+    document.getElementById("toggleLinkBack").classList.remove("hidden");
+    document.getElementById("message").innerText = "";
+}
+
+function showSignin() {
+    isLoginMode = false;
+    document.getElementById("main-heading").innerText = "🛒 Buyer Sign in";
+    document.getElementById("sign-in-only").classList.remove("hidden");
+    document.getElementById("toggleLink").classList.remove("hidden");
+    document.getElementById("toggleLinkBack").classList.add("hidden");
+}
+
+async function checkBuyerAndSendOTP() {
+    let phone = document.getElementById("phone").value.trim();
+    let msg = document.getElementById("message");
+    let name = document.getElementById("fullname").value.trim();
+    let gmail = document.getElementById("gmail").value.trim();
+
+    if(!/^[6-9]\d{9}$/.test(phone)){
+        msg.style.color = "#ffbaba";
+        msg.innerText = "⚠ Valid 10-digit Indian number required";
+        return;
+    }
+
+    msg.innerText = "Verifying... ⏳";
+    msg.style.color = "#ffffff";
+
+    try {
+        // Step 1: Check if buyer exists in 'buyers' collection
+        const buyerDoc = await db.collection("buyers").doc(phone).get();
+
+        if (isLoginMode) {
+            if (!buyerDoc.exists) {
+                msg.style.color = "#ffbaba";
+                msg.innerText = "⚠ Account not found! Please Sign in.";
+                return;
+            }
+        } else {
+            if (buyerDoc.exists) {
+                msg.style.color = "#ffbaba";
+                msg.innerText = "⚠ Number already registered! Please Login.";
+                return;
+            }
+            if(!name || !gmail){
+                msg.style.color = "#ffbaba";
+                msg.innerText = "⚠ Please fill all fields";
+                return;
+            }
+        }
+
+        // Step 2: Send OTP
+        generatedOTP = Math.floor(1000 + Math.random() * 9000);
+        alert("Smart Agro OTP: " + generatedOTP);
+
+        document.getElementById("login-fields").classList.add("hidden");
+        document.getElementById("otpSection").classList.remove("hidden");
+        msg.innerText = "OTP Sent Successfully";
+
+    } catch (error) {
+        msg.innerText = "Error: " + error.message;
+    }
+}
+
+async function verifyOTP() {
+    let userOTP = document.getElementById("otpInput").value;
+    let msg = document.getElementById("message");
+    let phone = document.getElementById("phone").value.trim();
+    let name = document.getElementById("fullname").value.trim();
+    let gmail = document.getElementById("gmail").value.trim();
+
+    if(userOTP == generatedOTP && userOTP !== ""){
+        msg.style.color = "#a5d6a7";
+        msg.innerText = "Success! Processing... ✅";
+
+        try {
+            // Save to Firestore if it's a new Sign In
+            if (!isLoginMode) {
+                await db.collection("buyers").doc(phone).set({
+                    fullname: name,
+                    email: gmail,
+                    phone: phone,
+                    role: "buyer",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            setTimeout(() => {
+                window.location.href = "buyingportal.html?user=" + phone; 
+            }, 1000);
+
+        } catch (error) {
+            msg.innerText = "Database Error: " + error.message;
+        }
+
+    } else {
+        msg.style.color = "#ffbaba";
+        msg.innerText = "Invalid OTP ❌";
+    }
+}
+
+function resetView() {
+    document.getElementById("otpSection").classList.add("hidden");
+    document.getElementById("login-fields").classList.remove("hidden");
+    document.getElementById("message").innerText = "";
+}
+</script>
+
+</body>

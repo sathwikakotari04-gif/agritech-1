@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+    authDomain: "agritech-c5612.firebaseapp.com",
+    projectId: "agritech-c5612",
+    storageBucket: "agritech-c5612.firebasestorage.app",
+    messagingSenderId: "859521048089",
+    appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Agro Connect | Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --farmer-green: #2d6a4f;
+            --farmer-light: #95d5b2;
+            --buyer-gold: #ffb703;
+            --buyer-dark: #e6a600;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { height: 100%; overflow: hidden; background-color: #000; }
+
+        .bg-container {
+            position: relative;
+            height: 100vh; width: 100%;
+            background: url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=2070') no-repeat center center/cover;
+            display: flex; align-items: center; justify-content: center;
+            perspective: 1000px; /* 3D effect kosam idi chala mukhyam */
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+        }
+
+        .main-content { 
+            display: flex; gap: 60px; z-index: 10; 
+            width: 90%; max-width: 1100px; justify-content: center;
+        }
+
+        /* Tilt Card Style */
+        .portal-choice { 
+            text-align: center; cursor: pointer; 
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            width: 300px; padding: 20px;
+        }
+
+        /* Hover chesthe tilt avvadaniki logic */
+        .farmer-choice:hover { transform: rotateY(-15deg) rotateX(5deg) scale(1.05); }
+        .buyer-choice:hover { transform: rotateY(15deg) rotateX(5deg) scale(1.05); }
+
+        .icon-wrapper {
+            width: 180px; height: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 40px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4.5rem; margin: 0 auto 25px; color: white;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            transition: 0.3s;
+        }
+
+        .farmer-choice:hover .icon-wrapper { background: var(--farmer-green); border-color: var(--farmer-light); box-shadow: 0 0 30px var(--farmer-green); }
+        .buyer-choice:hover .icon-wrapper { background: var(--buyer-gold); border-color: #fff; box-shadow: 0 0 30px var(--buyer-gold); color: #000; }
+
+        .btn-custom {
+            background-color: var(--farmer-green);
+            color: white; border: none; padding: 15px 40px;
+            border-radius: 50px; font-size: 24px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: 0.3s;
+        }
+
+        .buyer-choice .btn-custom { background-color: var(--buyer-gold); color: #000; }
+
+        .tagline { color: #eee; font-size: 0.9rem; margin-top: 15px; letter-spacing: 3px; font-weight: 300; }
+
+        /* Redirect transition animation */
+        .fade-out { opacity: 0; transform: scale(0.9); transition: 0.4s; }
+
+        @media (max-width: 768px) {
+            .main-content { flex-direction: column; align-items: center; }
+            .portal-choice { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-container" id="bg">
+        <div class="overlay"></div>
+        
+        <div class="main-content" id="portal-container">
+            <div class="portal-choice farmer-choice" onclick="redirectPage('framerlogin.html')">
+                <div class="icon-wrapper"><i class="fas fa-tractor"></i></div>
+                <button class="btn-custom">FARMER</button>
+                <p class="tagline">GROW • PREDICT • SELL</p>
+            </div>
+
+            <div class="portal-choice buyer-choice" onclick="redirectPage('buyerlogin.html')">
+                <div class="icon-wrapper"><i class="fas fa-shopping-cart"></i></div>
+                <button class="btn-custom">BUYER</button>
+                <p class="tagline">FRESH • DIRECT • FAST</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function redirectPage(url) {
+            const container = document.getElementById('portal-container');
+            const bg = document.getElementById('bg');
+            
+            // Step 1: Click cheyagane view ni fade out chestham
+            container.classList.add('fade-out');
+            bg.style.transform = "scale(1.1)";
+            bg.style.transition = "0.4s";
+
+            // Step 2: Correct ga 0.4 seconds (400ms) tharvatha link open avthundi
+            setTimeout(() => {
+                window.location.href = url;
+            }, 400); 
+        }
+    </script>
+</body>
+</html>

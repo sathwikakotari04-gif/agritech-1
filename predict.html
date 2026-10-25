@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriTech | Smart Farming Solutions</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2d6a4f;
+            --secondary: #52b788;
+            --light-bg: #f8f9fa;
+            --dark: #1b4332;
+            --white: #ffffff;
+            --accent: #ff9f1c;
+            --shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Gautami', sans-serif; }
+        body { background-color: var(--light-bg); color: #333; line-height: 1.6; scroll-behavior: smooth; }
+
+        nav {
+            background: var(--primary); color: white; padding: 1rem 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow);
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; list-style: none; gap: 20px; }
+        .nav-links a { color: white; text-decoration: none; font-weight: 500; transition: 0.3s; }
+
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80');
+            background-size: cover; background-position: center; height: 40vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center; padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        h2 { color: var(--dark); margin-bottom: 30px; text-align: center; }
+
+        .grid-layout {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px; margin-bottom: 50px;
+        }
+        .soil-card {
+            background: var(--white); padding: 20px; border-radius: 12px;
+            text-align: center; cursor: pointer; transition: 0.3s;
+            border: 2px solid transparent; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .soil-card:hover { transform: translateY(-5px); border-color: var(--secondary); }
+        .soil-card.active { background: var(--secondary); color: white; border-color: var(--primary); }
+        .soil-card i { font-size: 2rem; margin-bottom: 10px; color: var(--primary); }
+        .soil-card.active i { color: white; }
+        .soil-card span { font-size: 0.9rem; font-weight: 500; margin-top: 5px; }
+
+        .filter-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 8px 20px; border-radius: 20px; border: 2px solid var(--primary);
+            background: transparent; color: var(--primary); font-weight: bold; cursor: pointer;
+        }
+        .filter-btn.active { background: var(--primary); color: white; }
+
+        .crops-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px; min-height: 200px;
+        }
+        .crop-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); animation: fadeIn 0.5s ease; }
+        .crop-img { height: 200px; width: 100%; object-fit: cover; }
+        .crop-info { padding: 20px; }
+        .crop-info h3 { color: var(--primary); margin-bottom: 10px; font-size: 1.2rem; }
+        .crop-detail { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .badge { background: #e8f5e9; color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+
+        .card-panel { background: white; padding: 30px; border-radius: 20px; box-shadow: var(--shadow); margin-top: 40px; }
+        .ai-input-group { display: flex; gap: 10px; margin-top: 15px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        .ai-response { background: #f1f8e9; padding: 20px; margin-top: 20px; border-left: 5px solid var(--primary); display: none; border-radius: 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo"><i class="fas fa-leaf"></i> AgriTech</div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#soil">Soil Types</a></li>
+            <li><a href="#crops-title">Crops</a></li>
+            <li><a href="#pest">AI Advisor</a></li>
+        </ul>
+    </nav>
+
+    <div class="hero" id="home">
+        <h1>Smart Soil Intelligence</h1>
+        <p>Expert Recommendations in English & Telugu (ఇంగ్లీష్ మరియు తెలుగులో)</p>
+    </div>
+
+    <div class="container">
+        <h2 id="soil">1. Select Soil Type / మట్టి రకాన్ని ఎంచుకోండి</h2>
+        <div class="grid-layout" id="soilGrid"></div>
+
+        <h2 id="crops-title">2. Recommended Crops / సిఫార్సు చేయబడిన పంటలు</h2>
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterCrops('all')">All</button>
+            <button class="filter-btn" onclick="filterCrops('Field Crop')">Field Crops</button>
+            <button class="filter-btn" onclick="filterCrops('Vegetable')">Vegetables</button>
+            <button class="filter-btn" onclick="filterCrops('Fruit')">Fruits</button>
+        </div>
+        
+        <div class="crops-grid" id="cropDisplay">
+            <p style="text-align: center; grid-column: 1/-1;">Select a soil type above to see recommendations. / పైనున్న మట్టి రకాన్ని ఎంచుకోండి.</p>
+        </div>
+
+        <div class="card-panel" id="pest">
+            <h2><i class="fas fa-robot"></i> AgriTech AI Advisor</h2>
+            <div class="ai-input-group">
+                <input type="text" id="pestInput" placeholder="Ex: Yellow spots on leaves (ఆకులపై పసుపు మచ్చలు)...">
+                <button onclick="askAI()">Ask AI</button>
+            </div>
+            <div id="aiResponse" class="ai-response"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data updated to use "మట్టి" (Matti)
+        const soils = [
+            { en: "Alluvial Soil", te: "ఒండ్రు మట్టి" },
+            { en: "Black Soil", te: "నల్ల రేగడి మట్టి" },
+            { en: "Red Soil", te: "ఎర్ర మట్టి" },
+            { en: "Laterite Soil", te: "లాటరైట్ మట్టి" },
+            { en: "Sandy Soil", te: "ఇసుక మట్టి" },
+            { en: "Clay Soil", te: "బంక మట్టి" },
+            { en: "Loamy Soil", te: "లోమీ మట్టి" },
+            { en: "Mountain Soil", te: "పర్వత మట్టి" },
+            { en: "Desert Soil", te: "ఎడారి మట్టి" },
+            { en: "Saline Soil", te: "చవిటి మట్టి" }
+        ];
+        
+        const cropData = {
+            "Alluvial Soil": [
+                { name: "Rice (వరి)", type: "Field Crop", temp: "22-32°C", duration: "150 Days", water: "High", img: "https://www.azoai.com/images/news/ImageForNews_4365_17204625044647334.jpg" },
+                { name: "Wheat (గోధుమ)", type: "Field Crop", temp: "10-25°C", duration: "120 Days", water: "Medium", img: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400" },
+                { name: "Sugarcane (చెరకు)", type: "Field Crop", temp: "20-35°C", duration: "1 Year", water: "High", img: "https://png.pngtree.com/png-clipart/20241013/original/pngtree-sweet-crop-freshly-cut-sugarcane-png-image_16310191.png" },
+                { name: "Mango (మామిడి)", type: "Fruit", temp: "24-30°C", duration: "Perennial", water: "Medium", img: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400" },
+                { name: "Banana (అరటి)", type: "Fruit", temp: "20-30°C", duration: "12 Months", water: "High", img: "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=400" },
+                { name: "Cabbage (క్యాబేజీ)", type: "Vegetable", temp: "15-20°C", duration: "90 Days", water: "Medium", img: "https://cdn.pixabay.com/photo/2018/10/03/22/08/kohl-3722517_1280.jpg" }
+            ],
+            "Black Soil": [
+                { name: "Cotton (ప్రత్తి)", type: "Field Crop", temp: "21-30°C", duration: "180 Days", water: "Medium", img: "https://www.shutterstock.com/image-photo/hands-holding-fresh-white-cotton-600nw-2697264661.jpg" },
+                { name: "Soybean (సోయాబీన్)", type: "Field Crop", temp: "20-30°C", duration: "100 Days", water: "Medium", img: "https://m.media-amazon.com/images/I/618fqOp22tL._AC_UF894,1000_QL80_.jpg" },
+                { name: "Tobacco (పొగాకు)", type: "Field Crop", temp: "20-30°C", duration: "120 Days", water: "Medium", img: "https://elements-resized.envatousercontent.com/envato-dam-assets-production/EVA/TRX/fe/04/7a/c1/b4/v1_E10/E10A7KMS.jpg?w=500&cf_fit=scale-down&mark-alpha=18&mark=https%3A%2F%2Felements-assets.envato.com%2Fstatic%2Fwatermark4.png&q=85&format=auto&s=3ce9beab5076b0c2b9330a0f5ed658745e662ae1f5811dd5289c6d5f7505c81f" },
+                { name: "Oran ge (నారింజ)", type: "Fruit", temp: "13-37°C", duration: "Perennial", water: "Medium", img: "https://cdn.britannica.com/24/174524-050-A851D3F2/Oranges.jpg" },
+                { name: "Brinjal (వంకాయ)", type: "Vegetable", temp: "21-28°C", duration: "120 Days", water: "Low", img: "https://zamaorganics.com/cdn/shop/files/BRINJAL_1000_x_1000_px_3.png?v=1752751664" },
+                { name: "Chilli (మిరపకాయ)", type: "Vegetable", temp: "20-30°C", duration: "150 Days", water: "Medium", img: "https://m.media-amazon.com/images/I/612HQT4HUFL._AC_UF1000,1000_QL80_.jpg" }
+            ],
+            
+            "Red Soil": [
+                { name: "Groundnut (వేరుశనగ)", type: "Field Crop", temp: "20-30°C", duration: "110 Days", water: "Low", img: "https://static.vecteezy.com/system/resources/thumbnails/002/037/761/small/peanuts-whole-peeled-and-empty-shells-free-photo.jpg" },
+                { name: "Ragi (రాగులు)", type: "Field Crop", temp: "25-30°C", duration: "120 Days", water: "Low", img: "https://www.shutterstock.com/image-photo/red-finger-millet-ragi-raagi-260nw-2452661795.jpg" },
+                { name: "Pigeon Pea (కందులు)", type: "Field Crop", temp: "20-35°C", duration: "180 Days", water: "Low", img: "https://dayli.in/cdn/shop/files/244.png?v=1755888412" },
+                { name: "Pomegranate (దానిమ్మ)", type: "Fruit", temp: "25-35°C", duration: "Perennial", water: "Low", img: "https://images.unsplash.com/photo-1541344999736-83eca272f6fc?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cG9tZWdyYW5hdGUlMjBmcnVpdHxlbnwwfHwwfHx8MA%3D%3D" },
+                { name: "Guava (జామ)", type: "Fruit", temp: "20-28°C", duration: "Perennial", water: "Low", img: "https://findfresh.in/attachments/shop_images/tissue-culture-thai-guava-plants-1613998111-5731865.jpeg" },
+                { name: "Tomato (టమాటా)", type: "Vegetable", temp: "20-28°C", duration: "80 Days", water: "Medium", img: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400" }
+            ],
+            "Laterite Soil": [
+                { name: "Tea (తేయాకు)", type: "Field Crop", temp: "15-30°C", duration: "Perennial", water: "High", img: "https://img500.exportersindia.com/product_images/bc-500/2023/11/12587714/tea-powder-1699510818-7164912.jpeg" },
+                { name: "Coffee (కాఫీ)", type: "Field Crop", temp: "15-28°C", duration: "Perennial", water: "High", img: "https://tarunaturalslite.myshopify.com/cdn/shop/products/top-view-coffee-powder-strainer-coffee-beans_23-2148453615.jpg?v=1611484682" },
+                { name: "Cashew (జీడిపప్పు)", type: "Fruit", temp: "20-30°C", duration: "Perennial", water: "Low", img: "https://media.istockphoto.com/id/511301902/photo/healthy-food-cashews-rich-in-heart-friendly-fatty-acids-cashew.jpg?s=612x612&w=0&k=20&c=xvGxnbt1-VwuLjvu-wXesNqrxTrgSVgYmbbB6PcyicU=" },
+                { name: "Rubber (రబ్బరు)", type: "Field Crop", temp: "25-34°C", duration: "Perennial", water: "High", img: "https://www.risrubber.com/wp-content/uploads/2024/06/hevea-rubber-shutterstock_1170425086-scaled.jpg" },
+                { name: "Coconut (కొబ్బరి)", type: "Fruit", temp: "20-30°C", duration: "Perennial", water: "Medium", img: "https://puspitanursery.com/cdn/shop/products/2.jpg?v=1629370354" },
+                { name: "Tapioca (కర్రపెండలం)", type: "Vegetable", temp: "25-35°C", duration: "240 Days", water: "Medium", img: "https://findfresh.in/attachments/shop_images/DyC13TAVsAAyZuP.jpg" }
+            ],
+            "Sandy Soil": [
+                { name: "Watermelon (పుచ్చకాయ)", type: "Fruit", temp: "24-30°C", duration: "90 Days", water: "Low", img: "https://www.botanicalinterests.com/community/blog/wp-content/uploads/2024/08/watermelon-sow-and-grow-guide.jpg" },
+                { name: "Muskmelon (కర్బూజా)", type: "Fruit", temp: "25-32°C", duration: "100 Days", water: "Low", img: "https://blog-images-1.pharmeasy.in/blog/production/wp-content/uploads/2021/05/18150019/shutterstock_1376235665-1.jpg" },
+                { name: "Cucumber (దోసకాయ)", type: "Vegetable", temp: "20-25°C", duration: "60 Days", water: "Medium", img: "https://www.healthygreenkitchen.com/wp-content/uploads/2023/06/slicing-cucumbers.jpg" },
+                { name: "Carrot (క్యారెట్)", type: "Vegetable", temp: "15-21°C", duration: "75 Days", water: "Medium", img: "https://static01.nyt.com/images/2014/05/22/dining/Carrots-With-Orange-And-Cardamom/Carrots-With-Orange-And-Cardamom-jumbo.jpg" },
+                { name: "Peanuts (వేరుశనగ)", type: "Field Crop", temp: "20-30°C", duration: "110 Days", water: "Low", img: "https://naturepicstock.com/view/hd-image/peanut-plant-nature-pic-stock-image-1694878730797.webp" },
+                { name: "Radish (ముల్లంగి)", type: "Vegetable", temp: "10-25°C", duration: "45 Days", water: "Medium", img: "https://www.tasteofhome.com/wp-content/uploads/2019/05/radish-shutterstock_1010435131.jpg" }
+            ],
+            "Clay Soil": [
+                { name: "Jute (జనపనార)", type: "Field Crop", temp: "24-38°C", duration: "120 Days", water: "High", img: "https://media.istockphoto.com/id/1185911458/photo/jute-plant-stems-laid-for-drying-in-the-sun.jpg?s=612x612&w=0&k=20&c=wKrT30GXG12xC0cJbxrOIr5HvjmzRvcTUtYCfi_lgNI=" },
+                { name: "Paddy (వరి)", type: "Field Crop", temp: "22-32°C", duration: "150 Days", water: "High", img: "https://milnepublishing.geneseo.edu/app/uploads/sites/235/2020/06/image1-34-1024x768.jpeg" },
+                { name: "Spinach (పాలకూర)", type: "Vegetable", temp: "15-25°C", duration: "45 Days", water: "High", img: "https://cdn.britannica.com/48/125548-050-3EF2E126/Spinach.jpg" },
+                { name: "Pear (పియర్)", type: "Fruit", temp: "18-24°C", duration: "Perennial", water: "High", img: "https://www.thespruce.com/thmb/EH5hRqNq-tn7LexhZXb_aDONA2A=/6048x0/filters:no_upscale():max_bytes(150000):strip_icc()/bartlett-pear-tree-growing-guide-5211022_04-7703e95172b04952a53096f1b23b004e.jpg" },
+                { name: "Broccoli (బ్రకోలీ)", type: "Vegetable", temp: "15-20°C", duration: "90 Days", water: "Medium", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5jHHWQTcBhdGizJ_jFPQBNyt_OK_prh46DQ&s" },
+                { name: "Beans (చిక్కుడు)", type: "Vegetable", temp: "15-25°C", duration: "60 Days", water: "Medium", img: "https://nurserylive.com/cdn/shop/products/nurserylive-seeds-bush-beans-desi-vegetable-seeds-16968668709004.jpg?v=1634203220" }
+            ],
+            "Loamy Soil": [
+                { name: "Tomato (టమాటా)", type: "Vegetable", temp: "20-28°C", duration: "80 Days", water: "Medium", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTpPs6INuAXCgcXzA7QpWKI3iX3bRsJjOOJ1g&s" },
+                { name: "Apple (ఆపిల్)", type: "Fruit", temp: "15-24°C", duration: "Perennial", water: "Medium", img: "https://cdn.britannica.com/22/187222-050-07B17FB6/apples-on-a-tree-branch.jpg" },
+                { name: "Wheat (గోధుమ)", type: "Field Crop", temp: "10-25°C", duration: "120 Days", water: "Medium", img: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400" },
+                { name: "Maize (మొక్కజొన్న)", type: "Field Crop", temp: "18-27°C", duration: "110 Days", water: "Medium", img: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400" },
+                { name: "Onion (ఉల్లిపాయ)", type: "Vegetable", temp: "13-24°C", duration: "100 Days", water: "Medium", img: "https://images.unsplash.com/photo-1508747703725-719777637510?w=400" },
+                { name: "Grapes (ద్రాక్ష)", type: "Fruit", temp: "15-35°C", duration: "Perennial", water: "Medium", img: "https://m.media-amazon.com/images/I/51mAIhUopmL._AC_UF1000,1000_QL80_.jpg" }
+            ],
+            "Mountain Soil": [
+                { name: "Tea (తేయాకు)", type: "Field Crop", temp: "15-30°C", duration: "Perennial", water: "High", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR97I1iCFNhZhtyL1qzm_aJJ04C50l34W1lgg&s" },
+                { name: "Coffee (కాఫీ)", type: "Field Crop", temp: "15-28°C", duration: "Perennial", water: "High", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRiflrVHNy-B6D9ZUWbw5loTIaP9rQeEXr0A&s" },
+                { name: "Peach (పీచు పండు)", type: "Fruit", temp: "15-25°C", duration: "Perennial", water: "Medium", img: "https://thumbs.dreamstime.com/b/lush-peach-tree-ripe-fruits-pink-orange-sweet-scent-air-petals-ground-353248976.jpg" },
+                { name: "Potato (బంగాళదుంప)", type: "Vegetable", temp: "15-20°C", duration: "100 Days", water: "Medium", img: " https://growhoss.com/cdn/shop/articles/potato_ecdbb7b2-3914-4edb-818d-eb6abfc66627_460x@2x.jpg?v=1761159166" },
+                { name: "Plum (ప్లమ్)", type: "Fruit", temp: "15-25°C", duration: "Perennial", water: "Medium", img: "https://images.immediate.co.uk/production/volatile/sites/30/2019/09/Plums-in-a-tree-4a97a61.jpg" },
+                { name: "Ginger (అల్లం)", type: "Vegetable", temp: "20-30°C", duration: "240 Days", water: "Medium", img: "https://images.immediate.co.uk/production/volatile/sites/30/2019/09/Plums-in-a-tree-4a97a61.jpg" }
+            ],
+            "Desert Soil": [
+                { name: "Date Palm (ఖర్జూరం)", type: "Fruit", temp: "25-45°C", duration: "Perennial", water: "Low", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVmJ37Vg-lzNeeJ379UYc5iBDu3N7BSAp4vQ&s" },
+                { name: "Bajra (సజ్జలు)", type: "Field Crop", temp: "25-35°C", duration: "90 Days", water: "Very Low", img: "https://www.greendna.in/cdn/shop/products/perl5_500x.jpg?v=1750257706" },
+                { name: "Cactus Pear (నాగజెముడు పండు)", type: "Fruit", temp: "20-40°C", duration: "Perennial", water: "Low", img: "https://rukminim2.flixcart.com/image/480/640/xif0q/plant-sapling/n/f/k/yes-annual-yes-cactus-medium-1-grow-bag-kpl-cactus-original-imahyy9ae5acmnfm.jpeg?q=90" },
+                { name: "Guar (గోరు చిక్కుడు)", type: "Field Crop", temp: "25-35°C", duration: "100 Days", water: "Very Low", img: "https://www.shutterstock.com/image-photo/garden-fresh-indian-vegetable-green-260nw-2186762491.jpg" },
+                { name: "Aloe Vera (కలబంద)", type: "Vegetable", temp: "20-35°C", duration: "Perennial", water: "Very Low", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpYW-XrWPkGER_H36hjurtGZvFwErJ6RviDQ&s" },
+                { name: "Jojoba (జోజోబా)", type: "Field Crop", temp: "25-40°C", duration: "Perennial", water: "Low", img: "https://www.vitaman.com/cdn/shop/articles/benefits_of_jojoba_oil.jpg?v=1691741499" }
+            ],
+            "Saline Soil": [
+                { name: "Mustard (ఆవాలు)", type: "Field Crop", temp: "10-25°C", duration: "120 Days", water: "Low", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ6eh81th4IW0SsfAwEloalkOxMZ_X-pSCbWA&s" },
+                { name: "Guava (జామ)", type: "Fruit", temp: "20-28°C", duration: "Perennial", water: "Low", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTk65qs_idAUk1ZnZ3Sz9EPLRg8XO8t7y30EA&s" },
+                { name: "Beetroot (బీట్‌రూట్)", type: "Vegetable", temp: "15-22°C", duration: "60 Days", water: "Medium", img: "https://i0.wp.com/www.pioneeragroindustry.com/shop/wp-content/uploads/2017/10/beetroot-1.jpg?fit=600%2C600&ssl=1" },
+                { name: "Barley (బార్లీ)", type: "Field Crop", temp: "15-25°C", duration: "110 Days", water: "Low", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRan5ULG0rfmReZIL6RqkBqFlIKfv1HpnH4vg&s" },
+                { name: "Asparagus (శతవరి)", type: "Vegetable", temp: "15-24°C", duration: "Perennial", water: "Medium", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSonG-LJQy0EEKgH6DbW256Ng9uzSytqSdN9w&s" },
+                { name: "Amla (ఉసిరి)", type: "Fruit", temp: "25-35°C", duration: "Perennial", water: "Low", img: "https://nurserylive.com/cdn/shop/products/nurserylive-amla-tree-indian-gooseberry-big-fruit-grown-through-seeds-plant_512x512.jpg?v=1634213311" }
+            ]
+        };
+
+        let activeSoil = "";
+        const soilGrid = document.getElementById('soilGrid');
+
+        // Render Soil Cards using "మట్టి"
+        soils.forEach(soil => {
+            const card = document.createElement('div');
+            card.className = 'soil-card';
+            card.innerHTML = `
+                <i class="fas fa-mountain"></i>
+                <strong>${soil.en}</strong>
+                <span>${soil.te}</span>
+            `;
+            card.onclick = () => {
+                activeSoil = soil.en;
+                document.querySelectorAll('.soil-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                filterCrops('all');
+                document.getElementById('crops-title').scrollIntoView();
+            };
+            soilGrid.appendChild(card);
+        });
+
+        function filterCrops(category) {
+            const display = document.getElementById('cropDisplay');
+            if (!activeSoil) return;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(category) || (category === 'all' && btn.innerText === 'All'));
+            });
+
+            const allCrops = cropData[activeSoil] || [];
+            const filtered = category === 'all' ? allCrops : allCrops.filter(c => c.type === category);
+
+            display.innerHTML = '';
+            if(filtered.length === 0) {
+                display.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">No crops found. / పంటలు లేవు.</p>';
+                return;
+            }
+
+            filtered.forEach(crop => {
+                display.innerHTML += `
+                    <div class="crop-card">
+                        <img src="${crop.img}" class="crop-img" alt="${crop.name}">
+                        <div class="crop-info">
+                            <span class="badge" style="float:right">${crop.type}</span>
+                            <h3>${crop.name}</h3>
+                            <div class="crop-detail"><span>Temp / ఉష్ణోగ్రత:</span> <span class="badge">${crop.temp}</span></div>
+                            <div class="crop-detail"><span>Duration / కాలం:</span> <span>${crop.duration}</span></div>
+                            <div class="crop-detail"><span>Water / నీరు:</span> <span>${crop.water}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function askAI() {
+            const input = document.getElementById('pestInput').value.toLowerCase();
+            const res = document.getElementById('aiResponse');
+            res.style.display = "block";
+            
+            if (input.includes("yellow") || input.includes("పసుపు")) 
+                res.innerHTML = "<strong>AI Advisor:</strong> Likely Nitrogen deficiency (నత్రజని లోపం). Add Urea.";
+            else if (input.includes("insect") || input.includes("పురుగు")) 
+                res.innerHTML = "<strong>AI Advisor:</strong> Pest attack. Use Neem oil spray (వేప నూనె).";
+            else 
+                res.innerHTML = "<strong>AI Advisor:</strong> Please describe more. / మరిన్ని వివరాలు తెలపండి.";
+        }
+    </script>
+</body>
+</html>

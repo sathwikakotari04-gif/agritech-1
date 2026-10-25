@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Dashboard | Register Stock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { margin: 0; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop'); background-size: cover; background-position: center; background-attachment: fixed; display: flex; justify-content: center; padding: 20px; font-family: 'Segoe UI', sans-serif; }
+        .main-card { background: rgba(255, 255, 255, 0.98); border-radius: 2.5rem; width: 100%; max-width: 950px; box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8); max-height: 94vh; overflow-y: auto; }
+        .crop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; padding: 10px; }
+        .crop-card { cursor: pointer; transition: all 0.3s; border: 4px solid #f8fafc; background: white; border-radius: 1.5rem; text-align: center; overflow: hidden; position: relative; }
+        .crop-card img { width: 100%; height: 100px; object-fit: cover; }
+        .crop-card.selected { border-color: #059669; background: #f0fdf4; transform: scale(1.05); }
+        
+        /* UPDATED INPUT ROW WITH DELETE BUTTON */
+        .seller-input-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 0.4fr; gap: 10px; background: #ffffff; padding: 15px; border-radius: 1.5rem; margin-bottom: 12px; border: 2px solid #e2e8f0; align-items: center; }
+        .row-delete-btn { color: #ef4444; background: #fee2e2; height: 45px; width: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer; }
+        .row-delete-btn:hover { background: #ef4444; color: white; }
+
+        .success-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(8px); }
+        .success-box { background: white; padding: 50px 30px; border-radius: 3rem; text-align: center; max-width: 400px; width: 90%; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .success-icon { width: 70px; height: 70px; background: #059669; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 20px; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #059669; border-radius: 10px; }
+    </style>
+</head>
+<body class="custom-scroll">
+
+    <div class="main-card p-6 md:p-10 custom-scroll">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 border-b-4 border-emerald-500 pb-6">
+            <div>
+                <h1 class="text-4xl font-black text-emerald-900 uppercase">Seller Dashboard</h1>
+                <p class="text-emerald-600 font-bold mt-2 uppercase" id="welcomeUser">Welcome, Farmer</p>
+            </div>
+            <div id="sellerIdDisplay" class="bg-emerald-100 px-6 py-2 rounded-full border-2 border-emerald-500 text-emerald-800 font-black uppercase tracking-wider">
+                ID: SYNCING...
+            </div>
+        </div>
+
+        <div class="mb-10">
+            <h2 class="text-xl font-black text-gray-800 mb-6 uppercase">1. Select Crop (పంటను ఎంచుకోండి)</h2>
+            <div class="crop-grid" id="cropGrid"></div>
+        </div>
+
+        <div class="mb-10">
+            <h2 class="text-xl font-black text-gray-800 mb-6 uppercase">2. Set Details (ధర & బరువు)</h2>
+            <div id="dynamicInputs" class="space-y-4">
+                <div class="text-center py-12 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400 font-bold">
+                    Select crops from above to enter details
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calculateSellerSummary()" class="w-full py-6 bg-emerald-600 text-white font-black text-2xl rounded-[2rem] shadow-2xl hover:bg-emerald-700 transition">
+            POST TO MARKET 🚀
+        </button>
+    </div>
+
+    <div id="summaryModal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-xl rounded-[3rem] p-8">
+            <h2 class="text-3xl font-black text-center mb-6">Listing Summary</h2>
+            <div id="summaryContent" class="space-y-4 mb-8 max-h-60 overflow-y-auto custom-scroll"></div>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="confirmListing()" class="py-5 bg-emerald-600 text-white font-black rounded-2xl">CONFIRM</button>
+                <button onclick="document.getElementById('summaryModal').classList.add('hidden')" class="py-5 bg-gray-100 text-gray-600 font-black rounded-2xl">BACK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successOverlay" class="success-overlay">
+        <div class="success-box">
+            <div class="success-icon"><i class="fas fa-check"></i></div>
+            <h2 class="text-4xl font-black text-emerald-900 mb-2 uppercase">Successful</h2>
+            <p class="text-gray-500 font-bold mb-8">Crop data updated in market.</p>
+            <button onclick="closeSuccess()" class="w-full py-4 bg-emerald-900 text-white font-black rounded-2xl hover:bg-black transition">CONTINUE</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+            authDomain: "agritech-c5612.firebaseapp.com",
+            projectId: "agritech-c5612",
+            storageBucket: "agritech-c5612.firebasestorage.app",
+            messagingSenderId: "859521048089",
+            appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const cropData = [
+            { id: 'paddy', name: 'Paddy', tel: 'వరి', img: 'https://t3.ftcdn.net/jpg/10/18/41/42/360_F_1018414204_slajqwEJK41TZ9N7c9V55N8jgu0jnNJB.jpg' },
+            { id: 'wheat', name: 'Wheat', tel: 'గోధుమలు', img: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400' },
+            { id: 'millets', name: 'Millets', tel: 'చిరుధాన్యాలు', img: 'https://www.shutterstock.com/shutterstock/videos/3834505761/thumb/1.jpg?ip=x480' },
+            { id: 'ragi', name: 'Ragi', tel: 'రాగులు', img: 'https://t4.ftcdn.net/jpg/07/91/74/47/360_F_791744782_vwYsap8huxyR3sD1ij2tpCENSKvW3IBT.jpg'},
+            { id: 'watermelon', name: 'Watermelon', tel: 'పుచ్చకాయ', img: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400' },
+            { id: 'mango', name: 'Mango', tel: 'మామిడి', img: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=400' },
+            { id: 'apple', name: 'Apple', tel: 'యాపిల్', img: 'https://hips.hearstapps.com/hmg-prod/images/apples-at-farmers-market-royalty-free-image-1627321463.jpg?crop=0.796xw:1.00xh;0.103xw,0&resize=640:*' },
+            { id: 'banana', name: 'Banana', tel: 'అరటిపండు', img: 'https://cdn.mos.cms.futurecdn.net/v2/t:0,l:464,cw:1193,ch:1193,q:80,w:1193/kzMYKaqQhtY2EzL7GABdah.jpg' },
+            { id: 'tomato', name: 'Tomato', tel: 'టమోటా', img: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400' },
+            { id: 'onion', name: 'Onion', tel: 'ఉల్లిపాయ', img: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=400' },
+            { id: 'chilli', name: 'Chilli', tel: 'మిర్చి', img: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?w=400' },
+            { id: 'coffee', name: 'Coffee Bean', tel: 'కాఫీ గింజలు', img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkONqO99ZknjeB0fStMq_OyRUVpbEnrR0gHZaomwbcLTgbGvhR-cTNJ2M&s' },
+            { id: 'sweetcorn', name: 'Sweetcorn', tel: 'మొక్కజొన్న', img: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400' },
+            { id: 'mushroom', name: 'Mushroom', tel: 'పుట్టగొడుగు', img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7ZqXGlp5AORynAc-_WO-0Bt-Z2SwVzb5lRg&s' }
+        ];
+
+        let selectedItems = new Set();
+
+        window.onload = async () => {
+            const phone = localStorage.getItem('farmerPhone');
+            if (!phone) { window.location.href = "login.html"; return; }
+            const userDoc = await db.collection("users").doc(phone).get();
+            if (userDoc.exists) {
+                const name = userDoc.data().name;
+                document.getElementById('welcomeUser').innerText = `WELCOME, ${name}`;
+                generateId(name);
+            }
+            renderGrid();
+        };
+
+        function generateId(name) {
+            let prefix = name.substring(0, 4).toLowerCase().replace(/\s/g, '');
+            const now = new Date();
+            let time = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
+            const finalId = prefix + time;
+            document.getElementById('sellerIdDisplay').innerText = `ID: ${finalId}`;
+            localStorage.setItem('farmer_unique_id', finalId);
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('cropGrid');
+            grid.innerHTML = '';
+            cropData.forEach(crop => {
+                const isSelected = selectedItems.has(crop.id);
+                const card = document.createElement('div');
+                card.className = `crop-card ${isSelected ? 'selected' : ''}`;
+                card.innerHTML = `<img src="${crop.img}"><div class="p-2"><p class="font-black text-[10px] text-emerald-900">${crop.name}</p><p class="text-[10px] text-gray-500 font-bold">${crop.tel}</p></div>`;
+                card.onclick = () => toggleCrop(crop.id);
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleCrop(id) {
+            if (selectedItems.has(id)) selectedItems.delete(id);
+            else selectedItems.add(id);
+            renderGrid();
+            renderInputs();
+        }
+
+        function renderInputs() {
+            const container = document.getElementById('dynamicInputs');
+            if (selectedItems.size === 0) {
+                container.innerHTML = `<div class="text-center py-12 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400 font-bold">Select crops from above</div>`;
+                return;
+            }
+            container.innerHTML = '';
+            selectedItems.forEach(id => {
+                const crop = cropData.find(c => c.id === id);
+                container.innerHTML += `
+                    <div class="seller-input-row" id="row-${id}">
+                        <div><p class="font-black text-emerald-900 text-sm">${crop.name}</p></div>
+                        <input type="number" id="p-${id}" placeholder="Price ₹" class="p-3 border-2 border-slate-100 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm">
+                        <input type="number" id="q-${id}" placeholder="KG" class="p-3 border-2 border-slate-100 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm">
+                        <div class="row-delete-btn" onclick="toggleCrop('${id}')">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function calculateSellerSummary() {
+            if (selectedItems.size === 0) return;
+            const summary = document.getElementById('summaryContent');
+            summary.innerHTML = '';
+            let valid = true;
+            selectedItems.forEach(id => {
+                const p = document.getElementById(`p-${id}`).value;
+                const q = document.getElementById(`q-${id}`).value;
+                if (!p || !q) valid = false;
+                const crop = cropData.find(c => c.id === id);
+                summary.innerHTML += `<div class="flex justify-between p-4 bg-slate-50 rounded-2xl font-bold"><span>${crop.name}</span><span class="text-emerald-700">${q} KG @ ₹${p}/kg</span></div>`;
+            });
+            if (!valid) return;
+            document.getElementById('summaryModal').classList.remove('hidden');
+        }
+
+        async function confirmListing() {
+            const sid = localStorage.getItem('farmer_unique_id');
+            const phone = localStorage.getItem('farmerPhone');
+            try {
+                const batch = db.batch();
+                selectedItems.forEach(id => {
+                    const crop = cropData.find(c => c.id === id);
+                    const p = document.getElementById(`p-${id}`).value;
+                    const q = document.getElementById(`q-${id}`).value;
+                    const docRef = db.collection("market_listings").doc();
+                    batch.set(docRef, { cropId: id, cropName: crop.name, price: Number(p), quantity: Number(q), sellerId: sid, sellerPhone: phone, timestamp: new Date() });
+                });
+                await batch.commit();
+                document.getElementById('summaryModal').classList.add('hidden');
+                document.getElementById('successOverlay').style.display = 'flex';
+            } catch (e) { console.error(e); }
+        }
+
+        function closeSuccess() {
+            document.getElementById('successOverlay').style.display = 'none';
+            location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriConnect Pro | Farmer Portal</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { --primary: #2e7d32; --secondary: #4caf50; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh; overflow: hidden; display: flex; 
+            justify-content: center; align-items: center; position: relative;
+        }
+
+        /* BACKGROUND */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: 0;
+            background-image: url('https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1400');
+            background-size: cover; background-position: center;
+            filter: blur(8px) brightness(0.6) saturate(1.4); transform: scale(1.08);
+        }
+
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: 1;
+            background: linear-gradient(135deg, rgba(20, 60, 20, 0.45) 0%, rgba(46, 125, 50, 0.20) 50%, rgba(20, 60, 20, 0.45) 100%);
+        }
+
+        /* BELL ICON */
+        .notif-bell {
+            position: fixed; top: 25px; right: 25px; z-index: 110;
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);
+            padding: 15px; border-radius: 20px; border: 1.5px solid rgba(255, 255, 255, 0.3);
+            color: white; cursor: pointer; transition: 0.3s;
+        }
+        .badge {
+            position: absolute; top: -5px; right: -5px; background: #ff3b3b;
+            color: white; font-size: 10px; font-weight: bold;
+            width: 22px; height: 22px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center; border: 2px solid white;
+        }
+
+        /* DRAWER */
+        #notifDrawer {
+            position: fixed; top: 0; right: -350px; width: 320px; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(20px);
+            border-left: 1.5px solid rgba(255, 255, 255, 0.2);
+            z-index: 120; transition: 0.4s ease; padding: 30px 20px;
+            overflow-y: auto;
+        }
+        #notifDrawer.open { right: 0; }
+
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; color: white; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+        
+        /* ORDER CARD WITH TICK/WRONG */
+        .order-card {
+            background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 12px; color: white;
+            position: relative;
+        }
+
+        .action-icons {
+            display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end;
+        }
+
+        .btn-action {
+            width: 35px; height: 35px; border-radius: 50%; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; 
+            transition: 0.2s; border: none;
+        }
+        .btn-tick { background: #4caf50; color: white; }
+        .btn-wrong { background: #f44336; color: white; }
+        .btn-action:hover { transform: scale(1.1); }
+
+        /* MAIN CARD */
+        .card {
+            position: relative; z-index: 10;
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(18px) saturate(1.8);
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            padding: 2.5rem; border-radius: 40px; width: 90%; max-width: 400px; text-align: center;
+        }
+
+        h1 { color: #ffffff; font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .telugu-sub { color: rgba(255, 255, 255, 0.80); font-size: 1rem; margin-bottom: 2rem; font-style: italic; }
+
+        .action-btn {
+            padding: 20px; border: 1.5px solid rgba(255, 255, 255, 0.35);
+            border-radius: 20px; background: rgba(255, 255, 255, 0.18);
+            color: #ffffff; font-weight: 700; font-size: 1.1rem;
+            cursor: pointer; transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 15px; text-align: left; width: 100%; margin-bottom: 15px;
+        }
+        .action-btn:hover { background: rgba(255, 255, 255, 0.28); transform: translateY(-3px); }
+        .action-btn.active { background: rgba(46, 125, 50, 0.85) !important; }
+        .sticker { font-size: 1.8rem; }
+    </style>
+</head>
+<body>
+
+    <div class="notif-bell" onclick="toggleDrawer()">
+        <i class="fas fa-bell"></i>
+        <div id="badgeCount" class="badge">0</div>
+    </div>
+
+    <div id="notifDrawer">
+        <div class="drawer-header">
+            <h3 style="letter-spacing: 1px;">NEW ORDERS</h3>
+            <i class="fas fa-times" style="cursor:pointer;" onclick="toggleDrawer()"></i>
+        </div>
+        <div id="orderList">
+            <p style="color:rgba(255,255,255,0.4); text-align:center; margin-top:50px;">Waiting for orders...</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h1>Farmer Portal</h1>
+        <p class="telugu-sub">రైతు పోర్టల్‌కు స్వాగతం</p>
+
+        <div class="btn-group">
+            <button class="action-btn" onclick="navigateTo(this, 'predict.html')">
+                <span class="sticker">🌱</span>
+                <div>Crop Prediction <br><span style="font-size:0.8rem; font-weight:normal; opacity:0.8;">పంట అంచనా</span></div>
+            </button>
+
+            <button class="action-btn" onclick="navigateTo(this, 'sellerpage.html')">
+                <span class="sticker">🚜</span>
+                <div>Sell Product <br><span style="font-size:0.8rem; font-weight:normal; opacity:0.8;">ఉత్పత్తిని అమ్మండి</span></div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+            authDomain: "agritech-c5612.firebaseapp.com",
+            projectId: "agritech-c5612",
+            storageBucket: "agritech-c5612.firebasestorage.app",
+            messagingSenderId: "859521048089",
+            appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const farmerPhone = localStorage.getItem('farmerPhone') || "9999999999";
+
+        function toggleDrawer() {
+            document.getElementById('notifDrawer').classList.toggle('open');
+        }
+
+        function navigateTo(element, url) {
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            setTimeout(() => { window.location.href = url; }, 150);
+        }
+
+        // LISTEN FOR REAL-TIME ORDERS
+        function startOrderListener() {
+            db.collection("orders")
+              .where("sellerPhone", "==", farmerPhone)
+              .onSnapshot((snapshot) => {
+                  const badge = document.getElementById('badgeCount');
+                  const list = document.getElementById('orderList');
+                  
+                  if (!snapshot.empty) {
+                      badge.innerText = snapshot.docs.length;
+                      badge.style.display = 'flex';
+                      
+                      list.innerHTML = '';
+                      snapshot.forEach(doc => {
+                          const order = doc.data();
+                          const orderId = doc.id; // Database Doc ID
+                          list.innerHTML += `
+                              <div class="order-card" id="card-${orderId}">
+                                  <h4 style="color:#81c784;">${order.cropName}</h4>
+                                  <p style="font-size:1.2rem; font-weight:bold;">${order.quantity} KG</p>
+                                  <p style="font-size:0.85rem; opacity:0.9; margin-top:5px;">👤 ${order.buyerName}</p>
+                                  <p style="font-size:0.85rem; opacity:0.9;">📞 ${order.buyerPhone}</p>
+                                  
+                                  <div class="action-icons">
+                                      <button class="btn-action btn-tick" onclick="handleOrder('${orderId}', 'Accepted')">
+                                          <i class="fas fa-check"></i>
+                                      </button>
+                                      <button class="btn-action btn-wrong" onclick="handleOrder('${orderId}', 'Rejected')">
+                                          <i class="fas fa-times"></i>
+                                      </button>
+                                  </div>
+                              </div>
+                          `;
+                      });
+                  } else {
+                      badge.style.display = 'none';
+                      list.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center; margin-top:50px;">No updates yet.</p>';
+                  }
+              });
+        }
+
+        // HANDLE TICK OR WRONG CLICK
+        function handleOrder(id, action) {
+            // Confirmation alert (Optional)
+            if(confirm(`Do you want to ${action} this order?`)) {
+                // Remove notification from Firebase
+                db.collection("orders").doc(id).delete()
+                .then(() => {
+                    console.log(`Order ${action} and notification removed.`);
+                })
+                .catch(err => console.error("Error updating order:", err));
+            }
+        }
+
+        window.onload = startOrderListener;
+    </script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgriTech — Buyer Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+  --g1:#0d2e1a;--g2:#1a4a2e;--g3:#2d7a4f;--g4:#4caf78;--g5:#a8d5b5;--g6:#e8f5ec;
+  --wheat:#f4c842;--red:#e74c3c;--text:#1a2e1f;--muted:#6b8f75;
+  --shadow:0 8px 32px rgba(26,74,46,.13);--radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--g6);color:var(--text);min-height:100vh; overflow-x: hidden;}
+
+/* NAVBAR */
+.navbar{position:sticky;top:0;z-index:300;background:var(--g1);padding:0 2rem;height:70px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 24px rgba(0,0,0,.3);}
+.nav-brand{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:#fff;}
+.nav-brand span{color:var(--wheat);}
+
+.search-container { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 12px; display: flex; align-items: center; width: 40%; border: 1px solid rgba(255,255,255,0.2); }
+.search-container input { background: transparent; border: none; color: white; margin-left: 10px; outline: none; width: 100%; }
+
+/* PRODUCT CARDS */
+.body{padding:2rem;}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.5rem;}
+.prod-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.prod-img-wrap{height:180px;background:#d0ebd8;position:relative; overflow: hidden;}
+.prod-img-wrap img{width:100%;height:100%;object-fit:cover;}
+.prod-badge{position:absolute;top:10px;left:10px;background:var(--g3);color:#fff;font-size:.65rem;font-weight:700;padding:.4rem .8rem;border-radius:20px;}
+
+.prod-info{padding:1.2rem; text-align: center;} 
+
+.prod-foot{
+    display: flex;
+    flex-direction: column; 
+    align-items: center;    
+    gap: 12px;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+    margin-top: 0.8rem;
+}
+
+.prod-price{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:var(--g2);}
+
+.btn-basket {
+    background: var(--g1);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    width: 100%; 
+    max-width: 200px;
+    transition: transform 0.1s;
+}
+
+.blink-effect {
+    animation: quickFlash 0.15s ease-out;
+}
+@keyframes quickFlash {
+    0% { background: var(--g1); transform: scale(1); }
+    50% { background: var(--wheat); transform: scale(0.95); }
+    100% { background: var(--g1); transform: scale(1); }
+}
+
+/* BASKET SIDEBAR */
+.basket-sidebar { position: fixed; right: -400px; top: 0; width: 380px; height: 100vh; background: white; z-index: 400; box-shadow: -10px 0 30px rgba(0,0,0,0.1); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+.basket-sidebar.open { right: 0; }
+.basket-header { padding: 20px; background: var(--g1); color: white; display: flex; justify-content: space-between; align-items: center; }
+.basket-items { flex: 1; overflow-y: auto; padding: 20px; }
+.basket-item { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
+.basket-item img { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
+
+/* SUCCESS OVERLAY */
+.success-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(8px); }
+.success-box { background: white; padding: 40px; border-radius: 2rem; text-align: center; max-width: 400px; animation: popIn 0.5s; }
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.cart-dot { position: absolute; top: -5px; right: -5px; background: var(--wheat); color: var(--g1); font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+</style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-brand">Agri<span>Tech</span></div>
+        <div class="search-container">
+            <i class="fas fa-search" style="color: var(--wheat);"></i>
+            <input type="text" id="searchInput" onkeyup="filterMarket()" placeholder="Search crops...">
+        </div>
+        <div class="flex items-center gap-6">
+            <div style="color:white; font-size:0.7rem; font-weight:800;">LIVE MARKET 🟢</div>
+            <button onclick="toggleBasket()" class="relative p-3 bg-emerald-800 rounded-xl text-white hover:bg-emerald-700 transition">
+                <i class="fas fa-shopping-basket text-xl"></i>
+                <span id="cartCount" class="cart-dot">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="body">
+        <div class="hero rounded-[2rem] bg-gradient-to-r from-emerald-900 to-emerald-700 p-10 mb-10 text-white text-center">
+            <h1 class="text-4xl font-black mb-2 font-serif">Fresh From Farmers</h1>
+            <p class="opacity-80 font-bold uppercase tracking-widest text-sm italic">Direct From Field to Table</p>
+        </div>
+        <div class="prod-grid" id="market-container"></div>
+    </div>
+
+    <div id="basketSidebar" class="basket-sidebar">
+        <div class="basket-header">
+            <h2 class="font-black text-xl uppercase tracking-tight">Your Basket</h2>
+            <button onclick="toggleBasket()" class="text-2xl hover:text-wheat transition">&times;</button>
+        </div>
+        <div id="basketItems" class="basket-items">
+            <p class="text-center text-gray-400 mt-20 font-bold">Your basket is empty!</p>
+        </div>
+        <div class="p-6 border-t bg-gray-50">
+            <div class="flex justify-between mb-4 font-black text-xl">
+                <span>TOTAL BILL</span>
+                <span id="totalBill" class="text-emerald-700">₹0</span>
+            </div>
+            <button onclick="checkout()" id="checkoutBtn" class="w-full py-4 bg-emerald-700 text-white font-black rounded-2xl hover:bg-black transition uppercase tracking-widest shadow-lg">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <div id="successOverlay" class="success-overlay">
+        <div class="success-box">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="text-3xl font-black text-emerald-900 uppercase mb-2">Order Placed!</h2>
+            <p class="text-gray-500 font-bold mb-8">Farmer has been notified. Thank you!</p>
+            <button onclick="closeSuccess()" class="w-full py-4 bg-emerald-900 text-white font-black rounded-xl uppercase hover:bg-black transition">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6H1PHeH_ubk5gv_IKYsWzYOIvk67Bl9I",
+            authDomain: "agritech-c5612.firebaseapp.com",
+            projectId: "agritech-c5612",
+            storageBucket: "agritech-c5612.firebasestorage.app",
+            messagingSenderId: "859521048089",
+            appId: "1:859521048089:web:3dd9c87a6e00297d119488"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        let allListings = []; 
+        let cart = [];
+
+        const cropImages = {
+            'watermelon': 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400',
+            'onion': 'https://images.unsplash.com/photo-1508747703725-719777637510?w=400',
+            'tomato': 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400',
+            'chilli': 'https://t3.ftcdn.net/jpg/17/93/17/26/360_F_1793172642_afpJriIhA34mXPGopSnpUUkNTbgmN6CW.jpg',
+            'mango': 'https://www.shutterstock.com/image-photo/fresh-mango-on-tree-garden-260nw-2617161019.jpg',
+            'rice': 'https://media.istockphoto.com/id/153737841/photo/rice.jpg?s=612x612&w=0&k=20&c=lfO7iLT0UsDDzra0uBOsN1rvr2d5OEtrG2uwbts33_c=',
+            'potato': 'https://cdn.pixabay.com/photo/2014/08/06/20/32/potatoes-411975_1280.jpg',
+            'apple': 'https://hips.hearstapps.com/hmg-prod/images/apples-at-farmers-market-royalty-free-image-1627321463.jpg?crop=0.796xw:1.00xh;0.103xw,0&resize=640:*',
+            'paddy': 'https://t3.ftcdn.net/jpg/10/18/41/42/360_F_1018414204_slajqwEJK41TZ9N7c9V55N8jgu0jnNJB.jpg',
+            'wheat': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400',
+            'coffeebean':'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTN5_wC2r1LfTLHn_xLMT1haCgm_wJQQi3BcA&s',
+            'mushroom': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7ZqXGlp5AORynAc-_WO-0Bt-Z2SwVzb5lRg&s',
+            'ragi': 'https://t4.ftcdn.net/jpg/07/91/74/47/360_F_791744782_vwYsap8huxyR3sD1ij2tpCENSKvW3IBT.jpg',
+            'banana': 'https://cdn.mos.cms.futurecdn.net/v2/t:0,l:464,cw:1193,ch:1193,q:80,w:1193/kzMYKaqQhtY2EzL7GABdah.jpg',
+            'sweetcorn': 'https://food.fnr.sndimg.com/content/dam/images/food/fullset/2023/6/28/fresh-corn-on-the-cob-partially-shucked-on-dark-background.jpg'
+        };
+
+        db.collection("market_listings").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+            allListings = [];
+            snapshot.forEach(doc => allListings.push({id: doc.id, ...doc.data()}));
+            renderCards(allListings);
+        });
+
+        function renderCards(dataList) {
+            const container = document.getElementById('market-container');
+            container.innerHTML = '';
+            dataList.forEach(data => {
+                let cropKey = data.cropName.toLowerCase().replace(/\s/g, '');
+                let cropImg = cropImages[cropKey] || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400";
+                container.innerHTML += `
+                    <div class="prod-card">
+                        <div class="prod-img-wrap">
+                            <img src="${cropImg}" alt="${data.cropName}">
+                            <div class="prod-badge">${data.quantity} KG AVAILABLE</div>
+                        </div>
+                        <div class="prod-info">
+                            <div class="prod-name font-black text-xl text-emerald-950">${data.cropName}</div>
+                            <div class="prod-farmer font-bold text-xs text-emerald-600 mt-1 uppercase">👨‍🌾 Farmer: ${data.sellerId || 'Farmer'}</div>
+                            <div class="prod-foot">
+                                <div class="prod-price">₹${data.price}<span class="text-xs text-gray-400">/kg</span></div>
+                                <button class="btn-basket" 
+                                    onclick="triggerBlink(this); addToCart('${data.id}', '${data.cropName}', ${data.price}, '${cropImg}', ${data.quantity})">
+                                    ADD TO BASKET
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function triggerBlink(btn) {
+            btn.classList.add('blink-effect');
+            setTimeout(() => btn.classList.remove('blink-effect'), 150);
+        }
+
+        function addToCart(id, name, price, img, currentStock) {
+            const existing = cart.find(item => item.id === id);
+            if (existing) {
+                if(existing.qty < currentStock) existing.qty += 1;
+            } else {
+                cart.push({ id, name, price, img, qty: 1, maxQ: currentStock });
+            }
+            updateBasketUI();
+        }
+
+        function updateBasketUI() {
+            const container = document.getElementById('basketItems');
+            const cartCount = document.getElementById('cartCount');
+            const totalBill = document.getElementById('totalBill');
+            cartCount.innerText = cart.length;
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 mt-20 font-bold">Your basket is empty!</p>`;
+                totalBill.innerText = "₹0";
+                return;
+            }
+            container.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, index) => {
+                total += (item.price * item.qty);
+                container.innerHTML += `
+                    <div class="basket-item">
+                        <img src="${item.img}">
+                        <div class="flex-1">
+                            <p class="font-black text-emerald-950">${item.name}</p>
+                            <p class="text-xs font-bold text-gray-400">₹${item.price}/kg</p>
+                            <div class="flex items-center gap-3 mt-2">
+                                <button onclick="changeQty(${index}, -1)" class="w-6 h-6 bg-gray-200 rounded-full font-bold hover:bg-emerald-100 transition">-</button>
+                                <span class="font-black text-xs">${item.qty} KG</span>
+                                <button onclick="changeQty(${index}, 1)" class="w-6 h-6 bg-gray-200 rounded-full font-bold hover:bg-emerald-100 transition">+</button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart(${index})" class="text-red-400"><i class="fas fa-trash"></i></button>
+                    </div>`;
+            });
+            totalBill.innerText = `₹${total}`;
+        }
+
+        function changeQty(index, delta) {
+            const item = cart[index];
+            if (delta === 1 && item.qty < item.maxQ) item.qty += 1;
+            if (delta === -1 && item.qty > 1) item.qty -= 1;
+            updateBasketUI();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateBasketUI();
+        }
+
+        function toggleBasket() {
+            document.getElementById('basketSidebar').classList.toggle('open');
+        }
+
+        // --- UPDATED CHECKOUT LOGIC FOR NOTIFICATIONS ---
+        async function checkout() {
+            if (cart.length === 0) return;
+            const btn = document.getElementById('checkoutBtn');
+            btn.innerText = "PROCESSING..."; btn.disabled = true;
+
+            // Info from login storage
+            const buyerPhone = localStorage.getItem('userPhone') || "No_Phone";
+            const buyerName = localStorage.getItem('userName') || "Customer";
+
+            try {
+                const batch = db.batch();
+
+                for (const item of cart) {
+                    const productRef = db.collection("market_listings").doc(item.id);
+                    const doc = await productRef.get();
+                    const listingData = doc.data();
+
+                    if (listingData) {
+                        // 1. Send Order Notification to Farmer (orders collection)
+                        const orderRef = db.collection("orders").doc();
+                        batch.set(orderRef, {
+                            cropName: item.name,
+                            quantity: item.qty,
+                            price: item.price,
+                            totalPrice: item.price * item.qty,
+                            sellerPhone: listingData.sellerPhone, // Important for Farmer notification
+                            buyerPhone: buyerPhone,
+                            buyerName: buyerName,
+                            status: "confirmed",
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // 2. Reduce Stock or Delete Listing
+                        const newStock = listingData.quantity - item.qty;
+                        if (newStock <= 0) {
+                            batch.delete(productRef);
+                        } else {
+                            batch.update(productRef, { quantity: newStock });
+                        }
+                    }
+                }
+
+                await batch.commit();
+                document.getElementById('successOverlay').style.display = 'flex';
+                document.getElementById('basketSidebar').classList.remove('open');
+            } catch (e) { 
+                console.error("Checkout error:", e);
+                alert("Order failed. Please try again.");
+            } finally { 
+                btn.innerText = "Place Order"; 
+                btn.disabled = false; 
+            }
+        }
+
+        function closeSuccess() {
+            document.getElementById('successOverlay').style.display = 'none';
+            cart = [];
+            updateBasketUI();
+        }
+
+        function filterMarket() {
+            let term = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allListings.filter(item => 
+                item.cropName.toLowerCase().includes(term) || 
+                (item.sellerId && item.sellerId.toLowerCase().includes(term))
+            );
+            renderCards(filtered);
+        }
+    </script>
+</body>
+</html>
